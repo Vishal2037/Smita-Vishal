@@ -1,39 +1,36 @@
 # Giveaway Hunter
 
-A local-first Windows dashboard for finding, reviewing, and tracking giveaways. YouTube search uses the official YouTube Data API when configured. The app also accepts manual links from Instagram, TikTok, Facebook, X, and websites, extracts likely entry instructions from provided descriptions/transcripts, and tracks draft entries.
+A local-first Windows dashboard for finding, reviewing, and tracking giveaways.
 
-## Features
-- Local SQLite tracker.
-- Optional YouTube API search.
-- Manual intake for all major platforms.
-- Entry checklist extraction and heuristic scam flags.
-- Prize, deadline, eligibility, status, and draft tracking.
-- Human approval by design; no automated likes, follows, comments, or submissions.
+## Current features
+- YouTube discovery through the official YouTube Data API (optional API key).
+- Cross-platform public-web search for indexed Instagram, TikTok, Facebook, X, Reddit, YouTube, and selected giveaway-host sites using a search provider.
+- Manual intake for any platform.
+- Local SQLite tracker, duplicate URL checks, prize/deadline/eligibility fields.
+- Basic instruction extraction and heuristic scam flags.
+- Draft entry preparation and status tracking.
+- Human approval by design; the app never auto-likes, follows, comments, or submits forms.
 
 ## Windows setup
-1. Install Python 3.11+.
-2. Open PowerShell in this folder:
+1. Open PowerShell in this folder.
+2. Run:
    ```powershell
-   py -3.11 -m venv .venv
-   .\.venv\Scripts\Activate.ps1
-   python -m pip install --upgrade pip
-   pip install -r requirements.txt
+   python -m pip install -r requirements.txt
    python -m streamlit run app.py
    ```
-3. Optional YouTube search: enable YouTube Data API v3 in Google Cloud Console, create an API key, and paste it into the sidebar. Keep the key private. Search quota is limited; searches only run when you click the button.
+3. Optional YouTube search: enable YouTube Data API v3 in Google Cloud Console, create an API key, and paste it into the sidebar.
 
-## Platform coverage
-- YouTube: official API search when configured.
-- Instagram: API access is limited; consumer accounts are not generally searchable through the professional-account API.
-- TikTok: general discovery depends on approved APIs/scopes; standard APIs are not unrestricted global search.
-- Facebook and X: access depends on current API permissions and plans.
-- Other websites: manual intake now; compliant discovery adapters can be added later.
+## Important limitations
+- Public-web search is best-effort. Search engines do not index every post, and social platforms may hide content behind login or restrict automated access.
+- A result is only a lead. Verify the official rules, host identity, deadline, eligibility, and whether entries are still open.
+- Search-provider availability and terms may change. Do not use scraping to bypass authentication, CAPTCHAs, rate limits, or platform restrictions.
+- AI/video analysis, robust winner verification, reminders, and assisted submission are roadmap items, not completed features.
 
 ## Roadmap
-1. Optional local Ollama model for structured transcript analysis.
-2. Evidence-backed host verification and winner tracking.
-3. Permitted public-web discovery adapters.
-4. Deadline and winner notifications.
-5. Browser-assisted entry preparation only where platform rules permit, with explicit approval.
+1. Local Ollama model for transcript and rules extraction.
+2. Approved/public platform-specific discovery connectors where they provide materially better coverage.
+3. Evidence-backed host verification and winner tracking.
+4. Deadline reminders.
+5. Browser-assisted entry preparation only where platform rules permit, with explicit human confirmation.
 
-A heuristic score is not proof of legitimacy. Never pay upfront to claim a prize or disclose passwords, OTPs, or recovery phrases.
+[executed on device: Vishal (076fbc72-706e-48da-9906-48ff11fef637)]
