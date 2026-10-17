@@ -1,2 +1,2 @@
-# Smita-Vishal
+# Vishal
 Java script learning
