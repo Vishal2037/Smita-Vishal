@@ -1,2 +1,5 @@
 streamlit>=1.40,<2
 requests>=2.31,<3
+ddgs>=9.0,<10
+
+[executed on device: Vishal (076fbc72-706e-48da-9906-48ff11fef637)]
