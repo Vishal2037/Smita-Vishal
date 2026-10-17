@@ -2,6 +2,7 @@ from __future__ import annotations
 import os, re, sqlite3
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
+from urllib.parse import urlparse, parse_qs
 import streamlit as st
 
 APP_DIR = Path(__file__).resolve().parent
@@ -128,7 +129,7 @@ with left:
                     VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (title.strip(),url.strip(),platform,creator.strip(),prize_type,prize_value,currency,
                     deadline.strip(),eligibility.strip(),instructions.strip(),score,"; ".join(flags),"Review","Manual",datetime.now(timezone.utc).isoformat()))
                     conn.commit(); st.success("Added. Review the flags and instructions below.")
-                except sqlite3.IntegrityError: st.error("That URL is already in your tracker.")
+                except sqlite3.IntegrityError: st.error("That URL is already in the tracker.")
 
 with right:
     st.subheader("Instruction extractor")
@@ -171,3 +172,80 @@ else:
 
 st.divider()
 st.caption("Scores are heuristics, not proof. Verify official rules, eligibility, host identity, and winner history independently. Never share passwords, OTPs, recovery phrases, or pay an upfront prize-claim fee.")
+
+# Cross-platform public-web discovery (best-effort search-engine results; no account scraping)
+st.divider()
+st.subheader("🌐 Search across platforms")
+st.caption("Searches publicly indexed pages for giveaway posts across multiple sites. Coverage depends on search-engine indexing; this is not a complete feed or a guarantee that each post is current.")
+with st.form("web_discovery_form"):
+    web_query = st.text_input("Giveaway keywords", "giveaway win prize")
+    target_platforms = st.multiselect(
+        "Search platforms",
+        ["Instagram", "TikTok", "Facebook", "X", "Giveaway websites", "Reddit", "YouTube"],
+        default=["Instagram", "TikTok", "Facebook", "X", "Giveaway websites"]
+    )
+    web_count = st.slider("Results per platform", 3, 10, 5)
+    run_web_search = st.form_submit_button("Search public web", type="primary")
+
+if run_web_search:
+    try:
+        from ddgs import DDGS
+        domain_map = {
+            "Instagram": ["instagram.com"],
+            "TikTok": ["tiktok.com"],
+            "Facebook": ["facebook.com"],
+            "X": ["x.com", "twitter.com"],
+            "Giveaway websites": ["gleam.io", "sweepwidget.com", "rafflecopter.com", "woobox.com"],
+            "Reddit": ["reddit.com"],
+            "YouTube": ["youtube.com", "youtu.be"]
+        }
+        found = []
+        with DDGS() as search_client:
+            for platform_name in target_platforms:
+                domains = domain_map.get(platform_name, [])
+                domain_query = " OR ".join(f"site:{domain}" for domain in domains)
+                search_text = f"{web_query} giveaway {domain_query}"
+                try:
+                    items = search_client.text(search_text, max_results=web_count)
+                    for item in items or []:
+                        result_url = item.get("href") or item.get("url") or ""
+                        result_title = item.get("title") or "Untitled giveaway result"
+                        result_body = item.get("body") or ""
+                        if not result_url.startswith("https://"):
+                            continue
+                        found.append({
+                            "title": result_title, "url": result_url, "platform": platform_name,
+                            "creator": "", "instructions": result_body[:3000], "source": "Public web search"
+                        })
+                except Exception as search_error:
+                    st.warning(f"{platform_name} search did not return results: {search_error}")
+        deduped, seen_urls = [], set()
+        for item in found:
+            if item["url"] not in seen_urls:
+                seen_urls.add(item["url"])
+                deduped.append(item)
+        st.session_state.cross_platform_results = deduped
+        st.success(f"Found {len(deduped)} unique public search result(s). These are candidates, not verified giveaways.")
+    except ImportError:
+        st.error("Cross-platform search dependency is not installed yet. Run: python -m pip install -r requirements.txt")
+    except Exception as exc:
+        st.error(f"Public-web search failed: {exc}")
+
+for i, item in enumerate(st.session_state.get("cross_platform_results", [])):
+    with st.container(border=True):
+        st.markdown(f"**{item['title']}**")
+        st.caption(f"{item['platform']} · {item['url']}")
+        if item["instructions"]:
+            st.write(item["instructions"][:400])
+        if st.button("Save this result for review", key=f"web_save_{i}"):
+            score, flags, _ = assess(item["title"], item["creator"], item["url"], item["instructions"])
+            try:
+                conn.execute("""INSERT INTO giveaways(title,url,platform,creator,instructions,credibility,risk_notes,status,source,created_at)
+                    VALUES(?,?,?,?,?,?,?,?,?,?)""", (item["title"], item["url"], item["platform"], item["creator"],
+                    item["instructions"], score, "; ".join(flags), "Review", item["source"], datetime.now(timezone.utc).isoformat()))
+                conn.commit()
+                st.success("Saved for review.")
+            except sqlite3.IntegrityError:
+                st.warning("This URL is already saved.")
+
+[executed on device: Vishal (076fbc72-706e-48da-9906-48ff11fef637)]
